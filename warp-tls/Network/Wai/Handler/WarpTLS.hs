@@ -24,6 +24,7 @@ module Network.Wai.Handler.WarpTLS (
     , tlsWantClientCert
     , tlsServerHooks
     , defaultTlsSettings
+    , traditionalTlsSettings
     , tlsSettings
     , tlsSettingsMemory
     , tlsSettingsChain
@@ -110,7 +111,7 @@ data TLSSettings = TLSSettings {
     -- Since 3.0.2
   }
 
--- | Default 'TLSSettings'. Use this to create 'TLSSettings' with the field record name.
+-- | Default 'TLSSettings'. Use this to create 'TLSSettings' with the field record name. TLS only. RC4 is not included.
 defaultTlsSettings :: TLSSettings
 defaultTlsSettings = TLSSettings {
     certFile = "certificate.pem"
@@ -127,9 +128,40 @@ defaultTlsSettings = TLSSettings {
   , tlsServerHooks = def
   }
 
--- taken from stunnel example in tls-extra
 ciphers :: [TLS.Cipher]
 ciphers =
+    [ TLSExtra.cipher_ECDHE_RSA_AES128GCM_SHA256
+    , TLSExtra.cipher_DHE_RSA_AES128GCM_SHA256
+    , TLSExtra.cipher_DHE_RSA_AES256_SHA256
+    , TLSExtra.cipher_DHE_RSA_AES128_SHA256
+    , TLSExtra.cipher_DHE_RSA_AES256_SHA1
+    , TLSExtra.cipher_DHE_RSA_AES128_SHA1
+    , TLSExtra.cipher_DHE_DSS_AES128_SHA1
+    , TLSExtra.cipher_DHE_DSS_AES256_SHA1
+    , TLSExtra.cipher_AES128_SHA1
+    , TLSExtra.cipher_AES256_SHA1
+    ]
+
+-- | Traditional 'TLSSettings'. Use this to create 'TLSSettings' with the field record name. TLS only. RC4 is included.
+traditionalTlsSettings :: TLSSettings
+traditionalTlsSettings = TLSSettings {
+    certFile = "certificate.pem"
+  , chainCertFiles = []
+  , keyFile = "key.pem"
+  , certMemory = Nothing
+  , chainCertsMemory = []
+  , keyMemory = Nothing
+  , onInsecure = DenyInsecure "This server only accepts secure HTTPS connections."
+  , tlsLogging = def
+  , tlsAllowedVersions = [TLS.TLS10,TLS.TLS11,TLS.TLS12]
+  , tlsCiphers = traditionalCiphers
+  , tlsWantClientCert = False
+  , tlsServerHooks = def
+  }
+
+-- taken from stunnel example in tls-extra
+traditionalCiphers :: [TLS.Cipher]
+traditionalCiphers =
     [ TLSExtra.cipher_ECDHE_RSA_AES128GCM_SHA256
     , TLSExtra.cipher_DHE_RSA_AES128GCM_SHA256
     , TLSExtra.cipher_DHE_RSA_AES256_SHA256

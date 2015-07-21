@@ -17,6 +17,7 @@ module Network.Wai.Handler.WarpTLS (
     -- * Settings
       TLSSettings
     , defaultTlsSettings
+    , traditionalTlsSettings
     -- * Accessors
     , certFile
     , keyFile
@@ -98,7 +99,7 @@ data TLSSettings = TLSSettings {
     -- ^ The TLS ciphers this server accepts.
     --
     -- >>> tlsCiphers defaultTlsSettings
-    -- [ECDHE-RSA-AES128GCM-SHA256,DHE-RSA-AES128GCM-SHA256,DHE-RSA-AES256-SHA256,DHE-RSA-AES128-SHA256,DHE-RSA-AES256-SHA1,DHE-RSA-AES128-SHA1,DHE-DSA-AES128-SHA1,DHE-DSA-AES256-SHA1,DHE-DSA-RC4-SHA1,RSA-aes128-sha1,RSA-aes256-sha1,RSA-rc4-128-md5,RSA-rc4-128-sha1]
+    -- [ECDHE-RSA-AES128GCM-SHA256,DHE-RSA-AES128GCM-SHA256,DHE-RSA-AES256-SHA256,DHE-RSA-AES128-SHA256,DHE-RSA-AES256-SHA1,DHE-RSA-AES128-SHA1,DHE-DSA-AES128-SHA1,DHE-DSA-AES256-SHA1,RSA-aes128-sha1,RSA-aes256-sha1]
     --
     -- Since 1.4.2
   , tlsWantClientCert :: Bool
@@ -122,7 +123,7 @@ data TLSSettings = TLSSettings {
     -- ^Whether or not renegotiation is used.
     --
     -- >>> tlsAllowSecureRenegotiation defaultTlsSettings
-    -- True
+    -- False
     --
     -- Since 3.1.0
   }
@@ -142,12 +143,46 @@ defaultTlsSettings = TLSSettings {
   , tlsCiphers = ciphers
   , tlsWantClientCert = False
   , tlsServerHooks = def
+  , tlsAllowSecureRenegotiation = False
+  }
+
+ciphers :: [TLS.Cipher]
+ciphers =
+    [ TLSExtra.cipher_ECDHE_RSA_AES128GCM_SHA256
+    , TLSExtra.cipher_DHE_RSA_AES128GCM_SHA256
+    , TLSExtra.cipher_DHE_RSA_AES256_SHA256
+    , TLSExtra.cipher_DHE_RSA_AES128_SHA256
+    , TLSExtra.cipher_DHE_RSA_AES256_SHA1
+    , TLSExtra.cipher_DHE_RSA_AES128_SHA1
+    , TLSExtra.cipher_DHE_DSS_AES128_SHA1
+    , TLSExtra.cipher_DHE_DSS_AES256_SHA1
+    , TLSExtra.cipher_AES128_SHA1
+    , TLSExtra.cipher_AES256_SHA1
+    ]
+
+----------------------------------------------------------------
+
+-- | Traditional 'TLSSettings'. Use this to create 'TLSSettings' with the field record name (aka accessors).
+traditionalTlsSettings :: TLSSettings
+traditionalTlsSettings = TLSSettings {
+    certFile = "certificate.pem"
+  , chainCertFiles = []
+  , keyFile = "key.pem"
+  , certMemory = Nothing
+  , chainCertsMemory = []
+  , keyMemory = Nothing
+  , onInsecure = DenyInsecure "This server only accepts secure HTTPS connections."
+  , tlsLogging = def
+  , tlsAllowedVersions = [TLS.TLS12,TLS.TLS11,TLS.TLS10]
+  , tlsCiphers = traditionalCiphers
+  , tlsWantClientCert = False
+  , tlsServerHooks = def
   , tlsAllowSecureRenegotiation = True
   }
 
 -- taken from stunnel example in tls-extra
-ciphers :: [TLS.Cipher]
-ciphers =
+traditionalCiphers :: [TLS.Cipher]
+traditionalCiphers =
     [ TLSExtra.cipher_ECDHE_RSA_AES128GCM_SHA256
     , TLSExtra.cipher_DHE_RSA_AES128GCM_SHA256
     , TLSExtra.cipher_DHE_RSA_AES256_SHA256

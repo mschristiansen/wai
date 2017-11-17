@@ -185,6 +185,7 @@ test-suite spec
                      Network.Wai.RequestSpec
                      Network.Wai.Middleware.ApprootSpec
                      Network.Wai.Middleware.ForceSSLSpec
+                     Network.Wai.Middleware.GzipSpec
                      Network.Wai.Middleware.RoutedSpec
                      Network.Wai.Middleware.StripHeadersSpec
                      WaiExtraSpec

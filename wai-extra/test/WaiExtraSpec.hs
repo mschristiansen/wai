@@ -29,10 +29,8 @@ import Network.Wai.Middleware.MethodOverride
 import Network.Wai.Middleware.MethodOverridePost
 import Network.Wai.Middleware.AcceptOverride
 import Network.Wai.Middleware.RequestLogger
-import Codec.Compression.GZip (decompress)
 import Network.Wai.Middleware.StreamFile
 
-import Control.Monad.IO.Class (liftIO)
 import Data.Maybe (fromMaybe)
 import Network.HTTP.Types (status200)
 import System.Log.FastLogger
@@ -53,10 +51,6 @@ spec = do
     , it "takeLine" caseTakeLine
     -}
     it "jsonp" caseJsonp
-    it "gzip" caseGzip
-    it "gzip not for MSIE" caseGzipMSIE
-    it "gzip bypass when precompressed" caseGzipBypassPre
-    it "defaultCheckMime" caseDefaultCheckMime
     it "vhost" caseVhost
     it "autohead" caseAutohead
     it "method override" caseMethodOverride
@@ -155,61 +149,6 @@ caseJsonp = flip runSession jsonpApp $ do
     assertContentType "application/json" sres3
     assertBody "{\"foo\":\"bar\"}" sres3
 
-gzipApp :: Application
-gzipApp = gzip def $ \_ f -> f $ responseLBS status200
-    [("Content-Type", "text/plain")]
-    "test"
-
--- Lie a little and don't compress the body.  This way we test
--- that the compression is skipped based on the presence of
--- the Content-Encoding header.
-gzipPrecompressedApp :: Application
-gzipPrecompressedApp = gzip def $ \_ f -> f $ responseLBS status200
-    [("Content-Type", "text/plain"), ("Content-Encoding", "gzip")]
-    "test"
-
-caseGzip :: Assertion
-caseGzip = flip runSession gzipApp $ do
-    sres1 <- request defaultRequest
-                { requestHeaders = [("Accept-Encoding", "gzip")]
-                }
-    assertHeader "Content-Encoding" "gzip" sres1
-    liftIO $ decompress (simpleBody sres1) @?= "test"
-
-    sres2 <- request defaultRequest
-                { requestHeaders = []
-                }
-    assertNoHeader "Content-Encoding" sres2
-    assertBody "test" sres2
-
-caseDefaultCheckMime :: Assertion
-caseDefaultCheckMime = do
-    let go x y = (x, defaultCheckMime x) `shouldBe` (x, y)
-    go "application/json" True
-    go "application/javascript" True
-    go "application/something" False
-    go "text/something" True
-    go "foo/bar" False
-    go "application/json; charset=utf-8" True
-
-caseGzipMSIE :: Assertion
-caseGzipMSIE = flip runSession gzipApp $ do
-    sres1 <- request defaultRequest
-                { requestHeaders =
-                    [ ("Accept-Encoding", "gzip")
-                    , ("User-Agent", "Mozilla/4.0 (Windows; MSIE 6.0; Windows NT 6.0)")
-                    ]
-                }
-    assertNoHeader "Content-Encoding" sres1
-    liftIO $ simpleBody sres1 @?= "test"
-
-caseGzipBypassPre :: Assertion
-caseGzipBypassPre = flip runSession gzipPrecompressedApp $ do
-    sres1 <- request defaultRequest
-                { requestHeaders = [("Accept-Encoding", "gzip")]
-                }
-    assertHeader "Content-Encoding" "gzip" sres1
-    assertBody "test" sres1 -- the body is not actually compressed
 
 vhostApp1, vhostApp2, vhostApp :: Application
 vhostApp1 _ f = f $ responseLBS status200 [] "app1"
